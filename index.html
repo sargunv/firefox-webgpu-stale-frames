@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Firefox WebGPU OffscreenCanvas stale frames</title>
+<style>html,body{margin:0;background:#888}canvas{display:block;width:800px;height:600px}#d{position:absolute;left:820px;top:20px;width:40px;height:40px;background:#c00}</style>
+<canvas id="c"></canvas><div id="d"></div>
+<script type="module">
+// Each animation frame, a Web Worker draws frame number n into an OffscreenCanvas with WebGPU: n in binary as 16
+// black/white blocks along the top, and stripes that move right by n. ?work=<iterations> sets the per-pixel GPU work
+// of each frame; ?dom=1 also changes a DOM element's transform each frame on the page's thread (as a map's compass).
+const params = new URLSearchParams(location.search);
+const canvas = document.getElementById('c');
+canvas.width = 800 * devicePixelRatio; canvas.height = 600 * devicePixelRatio;
+const off = canvas.transferControlToOffscreen();
+const worker = new Worker('worker.js', { type: 'module' });
+worker.postMessage({ canvas: off, work: Number(params.get('work') ?? 300) }, [off]);
+window.frames_ = [];
+worker.onmessage = ({ data }) => { if (data.n !== undefined) { window.lastN = data.n; if (params.has('dom')) document.getElementById('d').style.transform = `rotate(${data.n * 3}deg)`; } else window.ready = data; };
+</script>
